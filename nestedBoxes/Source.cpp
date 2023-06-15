@@ -33,7 +33,7 @@ const static bool BoxLesserWidthGreaterLength(const box& lhs, const box& rhs)
 
 bool BoxLesserLength(const box& lhs, const box& rhs)
 {
-    return lhs.l < rhs.l;
+    return lhs.l <= rhs.l;
 }
 
 int BinarySearch(std::vector<box> vec, box b)
