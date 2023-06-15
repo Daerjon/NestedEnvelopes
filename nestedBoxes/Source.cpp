@@ -33,7 +33,7 @@ const static bool BoxLesserWidthGreaterLength(const box& lhs, const box& rhs)
 
 bool BoxLesserLength(const box& lhs, const box& rhs)
 {
-    return lhs.l <= rhs.l;
+    return lhs.l < rhs.l;
 }
 
 int BinarySearch(std::vector<box> vec, box b)
@@ -135,16 +135,22 @@ std::vector<box> nested_boxes(
 
     for (int i = 0; i < N; ++i) {
         P[i] = -1;
-        int index = BinarySearch(X, arr[i]);
+        auto iter = lower_bound(
+            X.begin(),
+            X.end(),
+            arr[i],
+            BoxLesserLength);
 
-        if (index == X.size() || 0 == X.size())
+        int index = std::distance(X.begin(), iter);
+
+        if (iter == X.end())
         {
             X.push_back(arr[i]);
             Z.push_back(i);
         }
-        else if (arr[i].l < X[index].l)
+        else if (arr[i].l < iter->l)
         {
-            X[index] = arr[i];
+            *iter = arr[i];
             Z[index] = i;
         }
         if (index - 1 >= 0)
@@ -159,165 +165,8 @@ std::vector<box> nested_boxes(
     return ret;
 }
 
-void DoTests(int minsize, int maxsize, int cases, int step, char format)
-{
-    int sizelen = (maxsize - minsize)/step+1;
-    long long* res = new long long[sizelen];
-    float* maxlen = new float[sizelen];
-    float* maxwid = new float[sizelen];
-    float* reslen = new float[sizelen];
-    std::vector<std::vector<box>> tests;
-    for (int i = 0; i < sizelen; i ++)
-    {
-        std::vector<std::vector<box>> results;
-        maxlen[i] = 0.0f;
-        maxwid[i] = 0.0f;
-        reslen[i] = 0.0f;
-        tests.clear();
-        tests.resize(cases);
-        int size = minsize + i * step;
-        auto createTest = [size]() -> std::vector<box> {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<> distrib(1, size);
-            std::vector<box> test;
-            for (int j = 0; j < size; j++)
-            {
-                test.push_back(box(distrib(gen), distrib(gen)));
-            }
-            return test;
-        };
-        std::generate(tests.begin(), tests.end(), createTest);
-        auto start = std::chrono::high_resolution_clock::now();
-        for (auto test : tests)
-        { 
-            results.push_back(nested_boxes(test));
-        }
-        auto stop = std::chrono::high_resolution_clock::now();
-        res[i] = duration_cast<std::chrono::microseconds>(stop - start).count() / 100;
-        for (auto r : results)
-        {
-            maxlen[i] += r[0].l;
-            maxwid[i] += r[0].w;
-            reslen[i] += r.size();
-        }
-        maxlen[i] /= static_cast<float>(cases);
-        maxwid[i] /= static_cast<float>(cases);
-        reslen[i] /= static_cast<float>(cases);
-    }
-
-    if (format == 'd')
-    {
-        std::cout << "czas:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize+i*step << "," << res[i] << ")" << "\n";
-        }
-        std::cout << "dlugosc:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize + i * step << "," << maxlen[i] << ")" << "\n";
-        }
-        std::cout << "szerokosc:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize + i * step << "," << maxwid[i] << ")" << "\n";
-        }
-        std::cout << "rozmiar:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize + i * step << "," << reslen[i] << ")" << "\n";
-        }
-    }
-    free(maxlen);
-    free(reslen);
-    free(maxwid);
-}
-
-void DoSizeTests(int minsize, int maxsize, int cases, int size, int step, char format)
-{
-    int sizelen = (maxsize - minsize) / step + 1;
-    long long* res = new long long[sizelen];
-    float* maxlen = new float[sizelen];
-    float* maxwid = new float[sizelen];
-    float* reslen = new float[sizelen];
-    std::vector<std::vector<box>> tests;
-    for (int i = 0; i < sizelen; i++)
-    {
-        std::vector<std::vector<box>> results;
-        maxlen[i] = 0.0f;
-        maxwid[i] = 0.0f;
-        reslen[i] = 0.0f;
-        tests.clear();
-        tests.resize(cases);
-        int wid = minsize + i * step;
-        auto createTest = [size, wid]() -> std::vector<box> {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<> distrib(1, wid);
-            std::vector<box> test;
-            for (int j = 0; j < size; j++)
-            {
-                test.push_back(box(distrib(gen), distrib(gen)));
-            }
-            return test;
-        };
-        std::generate(tests.begin(), tests.end(), createTest);
-        auto start = std::chrono::high_resolution_clock::now();
-        for (auto test : tests)
-        {
-            results.push_back(nested_boxes(test));
-        }
-        auto stop = std::chrono::high_resolution_clock::now();
-        res[i] = duration_cast<std::chrono::microseconds>(stop - start).count() / 100;
-        for (auto r : results)
-        {
-            maxlen[i] += r[0].l;
-            maxwid[i] += r[0].w;
-            reslen[i] += r.size();
-        }
-        maxlen[i] /= static_cast<float>(cases);
-        maxwid[i] /= static_cast<float>(cases);
-        reslen[i] /= static_cast<float>(cases);
-    }
-
-    if (format == 'd')
-    {
-        std::cout << "czas:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize + i * step << "," << res[i] << ")" << "\n";
-        }
-        std::cout << "dlugosc:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize + i * step << "," << maxlen[i] << ")" << "\n";
-        }
-        std::cout << "szerokosc:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize + i * step << "," << maxwid[i] << ")" << "\n";
-        }
-        std::cout << "rozmiar:\n";
-        for (int i = 0; i < sizelen; i++)
-        {
-            std::cout << "(" << minsize + i * step << "," << reslen[i] << ")" << "\n";
-        }
-    }
-    free(maxlen);
-    free(reslen);
-    free(maxwid);
-}
-
 int main(int argc, char* argv[])
 {
-    if (argc == 1)
-    {
-        std::cout << "Niepoprawne uzycie\n Aby uzyc aplikacji musisz wpisac w terminalu \n .\\nestedBoxes nazwy plikow wejsciowych\n";
-        std::cout << "W nazwach plikow wejsciowych mozna podac dowolna ilosc plikow\n nalezy podac nazwe wraz z rozszerzeniem np. test.txt\n";
-        return 0;
-    }
-
     if ((argc == 2) && (std::string(argv[1]) == "-a"))
     {
         std::filesystem::path cwd = std::filesystem::current_path();
@@ -334,29 +183,6 @@ int main(int argc, char* argv[])
                 SaveToFile(output, ans);
             }
         }
-        return 0;
-    }
-
-    if ((argc == 7) && (std::string(argv[1]) == "-t"))
-    {
-        int minsize = std::stoi(argv[2]);
-        int maxsize = std::atoi(argv[3]);
-        int cases = std::atoi(argv[4]);
-        int step = std::atoi(argv[5]);
-        char format = argv[6][0];
-        DoTests(minsize, maxsize, cases, step, format);
-        return 0;
-    }
-
-    if ((argc == 8) && (std::string(argv[1]) == "-s"))
-    {
-        int minsize = std::stoi(argv[2]);
-        int maxsize = std::atoi(argv[3]);
-        int cases = std::atoi(argv[4]);
-        int size = std::atoi(argv[5]);
-        int step = std::atoi(argv[6]);
-        char format = argv[7][0];
-        DoSizeTests(minsize, maxsize, cases, size, step, format);
         return 0;
     }
 
